@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Профиль пользователя</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #1a1a1a);
+            color: var(--tg-theme-text-color, #ffffff);
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--tg-theme-text-color, #ffffff);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .profile-card {
+            background-color: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .profile-photo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--tg-theme-button-color, #3390ec) 0%, var(--tg-theme-section-bg-color, #3a3a3a) 100%);
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--tg-theme-button-text-color, #ffffff);
+            overflow: hidden;
+        }
+
+        .profile-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background-color: var(--tg-theme-section-bg-color, #1a1a1a);
+            border-radius: 12px;
+            transition: background-color 0.2s ease;
+        }
+
+        .info-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-weight: 500;
+            min-width: 120px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            color: var(--tg-theme-text-color, #ffffff);
+            font-weight: 600;
+            text-align: right;
+            word-break: break-word;
+            flex: 1;
+        }
+
+        .info-value.empty {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .badge.premium {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+        }
+
+        .loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--tg-theme-hint-color, rgba(255, 255, 255, 0.1));
+            border-top-color: var(--tg-theme-button-color, #3390ec);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-size: 14px;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 20px;
+            }
+
+            .profile-card {
+                padding: 16px;
+            }
+
+            .profile-photo {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+                margin-bottom: 20px;
+            }
+
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+                padding: 12px;
+            }
+
+            .info-label {
+                min-width: auto;
+                font-size: 13px;
+            }
+
+            .info-value {
+                text-align: left;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Профиль пользователя</h1>
+
+        <div id="profileContent">
+            <div class="loader">
+                <div class="spinner"></div>
+                <div class="loader-text">Загрузка профиля...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Функция для отображения профиля
+        function displayProfile() {
+            console.log('🚀 Инициализация профиля...');
+            console.log('📱 Telegram Web App версия:', tg.version);
+            console.log('🎨 Цветовая схема:', tg.colorScheme);
+
+            // Получаем данные пользователя
+            const user = tg.initDataUnsafe?.user;
+
+            console.log('👤 Данные пользователя:', user);
+            console.log('📊 Полные initDataUnsafe:', tg.initDataUnsafe);
+
+            if (!user) {
+                console.warn('⚠️ Данные пользователя недоступны');
+                document.getElementById('profileContent').innerHTML = `
+                    <div class="profile-card">
+                        <div style="text-align: center; color: var(--tg-theme-hint-color, #8e8e93); padding: 40px 20px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Данные недоступны</div>
+                            <div style="font-size: 14px;">Откройте приложение через Telegram</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Получаем дополнительные данные
+            const initData = tg.initDataUnsafe;
+
+            // Формируем инициалы для аватара
+            const firstInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : '?';
+            const lastInitial = user.last_name ? user.last_name.charAt(0).toUpperCase() : '';
+            const initials = firstInitial + lastInitial;
+
+            // Формируем аватар (если есть photo_url, используем его)
+            const avatarContent = user.photo_url
+                ? `<img src="${user.photo_url}" alt="Фото профиля">`
+                : initials;
+
+            // Формируем полное имя
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Не указано';
+
+            // Формируем HTML профиля
+            const profileHTML = `
+                <div class="profile-card">
+                    <div class="profile-photo">${avatarContent}</div>
+
+                    <div class="profile-info">
+                        <div class="info-row">
+                            <div class="info-label">Telegram ID:</div>
+                            <div class="info-value">${user.id || 'Не указан'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Имя:</div>
+                            <div class="info-value ${!user.first_name ? 'empty' : ''}">${user.first_name || 'Не указано'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Фамилия:</div>
+                            <div class="info-value ${!user.last_name ? 'empty' : ''}">${user.last_name || 'Не указана'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Полное имя:</div>
+                            <div class="info-value">${fullName}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Username:</div>
+                            <div class="info-value ${!user.username ? 'empty' : ''}">
+                                ${user.username ? '@' + user.username : 'Не указан'}
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Язык:</div>
+                            <div class="info-value ${!user.language_code ? 'empty' : ''}">${user.language_code ? user.language_code.toUpperCase() : 'Не указан'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Премиум статус:</div>
+                            <div class="info-value">
+                                ${user.is_premium
+                                    ? '<span class="badge premium">Premium ⭐</span>'
+                                    : '<span class="badge">Обычный</span>'
+                                }
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Бот разрешен:</div>
+                            <div class="info-value">
+                                ${user.allows_write_to_pm
+                                    ? '<span class="badge">Да ✓</span>'
+                                    : '<span class="badge" style="background-color: #ff3b30;">Нет</span>'
+                                }
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Тип чата:</div>
+                            <div class="info-value ${!initData.chat_type ? 'empty' : ''}">${initData.chat_type || 'Не указан'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Платформа:</div>
+                            <div class="info-value">${tg.platform || 'Неизвестно'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Версия Web App:</div>
+                            <div class="info-value">${tg.version || 'Неизвестно'}</div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="info-label">Цветовая схема:</div>
+                            <div class="info-value">${tg.colorScheme === 'dark' ? '🌙 Темная' : '☀️ Светлая'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('profileContent').innerHTML = profileHTML;
+
+            console.log('✅ Профиль успешно отображен');
+        }
+
+        // Инициализация
+        function init() {
+            console.log('▶️ Запуск приложения профиля...');
+
+            // Отображаем профиль
+            displayProfile();
+
+            // Сигнализируем Telegram, что приложение готово
+            tg.ready();
+            console.log('✅ Приложение готово');
+        }
+
+        // Запускаем приложение
+        init();
+    </script>
+</body>
+</html>
