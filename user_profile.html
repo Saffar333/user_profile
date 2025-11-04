@@ -403,16 +403,40 @@
         // Получаем данные пользователя из Telegram
         function getTelegramUser() {
             try {
+                console.log('🔍 Проверка Telegram Web App...');
+                console.log('tg объект:', tg);
+                console.log('tg.initDataUnsafe:', tg.initDataUnsafe);
+                console.log('tg.initData:', tg.initData);
+
                 const user = tg.initDataUnsafe?.user;
+
                 if (user && user.id) {
                     telegramUser = user;
                     telegramId = user.id;
-                    console.log('👤 Telegram User:', telegramUser);
+                    console.log('✅ Telegram User найден:', telegramUser);
                     return true;
-                } else {
-                    console.warn('⚠️ Не удалось получить данные пользователя из Telegram');
-                    return false;
                 }
+
+                // Проверяем альтернативные способы получения данных
+                if (tg.initDataUnsafe && Object.keys(tg.initDataUnsafe).length > 0) {
+                    console.log('⚠️ initDataUnsafe существует, но user пустой:', tg.initDataUnsafe);
+                }
+
+                // Тестовый режим - создаем фейкового пользователя для локальной разработки
+                if (!tg.initData || tg.initData === '') {
+                    console.warn('⚠️ Тестовый режим: initData пуст, создаю тестового пользователя');
+                    telegramUser = {
+                        id: 123456789,
+                        first_name: 'Test',
+                        last_name: 'User',
+                        username: 'testuser'
+                    };
+                    telegramId = 123456789;
+                    return true;
+                }
+
+                console.warn('⚠️ Не удалось получить данные пользователя из Telegram');
+                return false;
             } catch (error) {
                 console.error('❌ Ошибка получения пользователя Telegram:', error);
                 return false;
@@ -612,16 +636,28 @@
         // Загрузка профиля
         async function loadProfile() {
             console.log('🚀 Начало загрузки профиля...');
+            console.log('📱 Platform:', tg.platform);
+            console.log('🎨 Version:', tg.version);
 
             const hasTelegramUser = getTelegramUser();
 
             if (!hasTelegramUser) {
                 console.warn('⚠️ Telegram пользователь не найден');
+                console.log('🔍 Детали отладки:');
+                console.log('- tg.initData:', tg.initData);
+                console.log('- tg.initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
+
                 document.getElementById('profileContent').innerHTML = `
                     <div class="error-message">
                         <strong>⚠️ Ошибка</strong>
                         Не удалось получить данные из Telegram.<br>
-                        <small>Откройте приложение из Telegram</small>
+                        <small>Откройте приложение из Telegram</small><br><br>
+                        <small style="opacity: 0.5;">
+                            Debug info:<br>
+                            Platform: ${tg.platform || 'unknown'}<br>
+                            Version: ${tg.version || 'unknown'}<br>
+                            InitData: ${tg.initData ? 'present' : 'empty'}
+                        </small>
                     </div>
                 `;
                 return;
