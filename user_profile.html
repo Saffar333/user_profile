@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Мой Профиль</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #1a1a1a);
+            color: var(--tg-theme-text-color, #ffffff);
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Заголовок профиля */
+        .profile-header {
+            background-color: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            border-radius: 20px;
+            padding: 40px 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--tg-theme-button-color, #3390ec) 0%, #5a9fd4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+            color: #ffffff;
+            margin: 0 auto 24px;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(51, 144, 236, 0.4);
+            border: 4px solid var(--tg-theme-bg-color, #1a1a1a);
+        }
+
+        .profile-name {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--tg-theme-text-color, #ffffff);
+            line-height: 1.2;
+            letter-spacing: -0.5px;
+        }
+
+        .profile-username {
+            font-size: 18px;
+            color: var(--tg-theme-link-color, #3390ec);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .profile-id {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-family: 'Courier New', monospace;
+            opacity: 0.7;
+        }
+
+        /* Секция статистики */
+        .stats-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-left: 8px;
+            color: var(--tg-theme-text-color, #ffffff);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .stat-card {
+            background-color: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            border-radius: 18px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--tg-theme-button-color, #3390ec), var(--tg-theme-link-color, #5a9fd4));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .stat-card:active {
+            transform: scale(0.97);
+        }
+
+        .stat-card:active::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            line-height: 1;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .stat-value {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--tg-theme-button-color, #3390ec);
+            margin-bottom: 10px;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .stat-label {
+            font-size: 15px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        /* Кнопка назад */
+        .back-button {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(51, 144, 236, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .back-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .back-button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .back-button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        /* Индикатор загрузки */
+        .loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--tg-theme-hint-color, rgba(255, 255, 255, 0.1));
+            border-top-color: var(--tg-theme-button-color, #3390ec);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-size: 14px;
+        }
+
+        /* Сообщение об ошибке */
+        .error-message {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-size: 14px;
+            line-height: 1.6;
+            background-color: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            border-radius: 16px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .error-message strong {
+            display: block;
+            color: var(--tg-theme-destructive-text-color, #ff3b30);
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        /* Дополнительная информация */
+        .info-section {
+            background-color: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--tg-theme-section-separator-color, rgba(255, 255, 255, 0.05));
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 15px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color, #ffffff);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            .profile-header {
+                padding: 32px 20px;
+            }
+
+            .profile-avatar {
+                width: 100px;
+                height: 100px;
+                font-size: 48px;
+                margin-bottom: 20px;
+            }
+
+            .profile-name {
+                font-size: 28px;
+            }
+
+            .profile-username {
+                font-size: 16px;
+            }
+
+            .stat-value {
+                font-size: 36px;
+            }
+
+            .stat-icon {
+                font-size: 32px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+        }
+
+        /* Очень маленькие экраны */
+        @media (max-width: 380px) {
+            .profile-avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 40px;
+            }
+
+            .profile-name {
+                font-size: 24px;
+            }
+
+            .stat-value {
+                font-size: 32px;
+            }
+
+            .stats-grid {
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 24px 16px;
+            }
+        }
+
+        /* Анимация появления */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-header,
+        .stats-section,
+        .info-section {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .stats-section {
+            animation-delay: 0.1s;
+        }
+
+        .info-section {
+            animation-delay: 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Контент профиля -->
+        <div id="profileContent">
+            <div class="loader">
+                <div class="spinner"></div>
+                <div class="loader-text">Загрузка профиля...</div>
+            </div>
+        </div>
+
+        <!-- Кнопка назад -->
+        <a href="index.html" class="back-button">← Вернуться назад</a>
+    </div>
+
+    <script>
+        // Проверка загрузки библиотек
+        if (!window.Telegram || !window.Telegram.WebApp) {
+            console.error('❌ Telegram Web App API не загружен!');
+            document.getElementById('profileContent').innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Ошибка загрузки</strong>
+                    Не удалось загрузить Telegram Web App API.<br>
+                    <small>Перезагрузите страницу</small>
+                </div>
+            `;
+        }
+
+        if (!window.supabase) {
+            console.error('❌ Supabase JS не загружен!');
+            document.getElementById('profileContent').innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Ошибка загрузки</strong>
+                    Не удалось загрузить Supabase библиотеку.<br>
+                    <small>Перезагрузите страницу</small>
+                </div>
+            `;
+        }
+
+        if (typeof CONFIG === 'undefined') {
+            console.error('❌ CONFIG не загружен!');
+            document.getElementById('profileContent').innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Ошибка конфигурации</strong>
+                    Не удалось загрузить конфигурацию.<br>
+                    <small>Проверьте файл config.js</small>
+                </div>
+            `;
+        }
+
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Инициализация Supabase клиента из конфигурации
+        const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+        let telegramUser = null;
+        let telegramId = null;
+        let userRecord = null;
+
+        // Режим разработки - включите для тестирования без Telegram
+        const DEV_MODE = false; // Установите true для локальной разработки
+
+        // Получаем данные пользователя из Telegram
+        function getTelegramUser() {
+            try {
+                console.log('🔍 Проверка Telegram Web App...');
+                console.log('tg объект:', tg);
+                console.log('tg.initDataUnsafe:', tg.initDataUnsafe);
+                console.log('tg.initData:', tg.initData);
+
+                const user = tg.initDataUnsafe?.user;
+
+                if (user && user.id) {
+                    telegramUser = user;
+                    telegramId = user.id;
+                    console.log('✅ Telegram User найден:', telegramUser);
+                    return true;
+                }
+
+                // Проверяем альтернативные способы получения данных
+                if (tg.initDataUnsafe && Object.keys(tg.initDataUnsafe).length > 0) {
+                    console.log('⚠️ initDataUnsafe существует, но user пустой:', tg.initDataUnsafe);
+                }
+
+                // Тестовый режим - создаем фейкового пользователя для локальной разработки
+                if (DEV_MODE && (!tg.initData || tg.initData === '')) {
+                    console.warn('⚠️ DEV MODE: Создаю тестового пользователя');
+                    telegramUser = {
+                        id: 123456789,
+                        first_name: 'Test',
+                        last_name: 'User',
+                        username: 'testuser'
+                    };
+                    telegramId = 123456789;
+                    return true;
+                }
+
+                console.warn('⚠️ Не удалось получить данные пользователя из Telegram');
+                return false;
+            } catch (error) {
+                console.error('❌ Ошибка получения пользователя Telegram:', error);
+                return false;
+            }
+        }
+
+        // Получаем или создаем запись пользователя в БД
+        async function ensureUserRecord() {
+            if (!telegramId) {
+                console.warn('⚠️ Telegram ID не найден');
+                return null;
+            }
+
+            try {
+                console.log('🔍 Поиск пользователя в БД с telegram_id:', telegramId);
+
+                // Проверяем, есть ли пользователь в БД
+                const { data: existing, error: fetchError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', telegramId)
+                    .maybeSingle();
+
+                if (fetchError) {
+                    console.error('❌ Ошибка получения пользователя из БД:', fetchError);
+
+                    // Детальная обработка типов ошибок
+                    if (fetchError.message.includes('fetch')) {
+                        throw new Error('Ошибка сети: не удалось подключиться к базе данных');
+                    } else if (fetchError.code === 'PGRST116') {
+                        throw new Error('Таблица users не найдена в базе данных');
+                    } else {
+                        throw new Error(`Ошибка БД: ${fetchError.message}`);
+                    }
+                }
+
+                if (existing) {
+                    console.log('✅ Пользователь найден в БД:', existing);
+                    userRecord = existing;
+
+                    // Обновляем данные пользователя, если они изменились
+                    if (telegramUser) {
+                        const updates = {};
+
+                        if (telegramUser.username && telegramUser.username !== existing.username) {
+                            updates.username = telegramUser.username;
+                        }
+
+                        // Формируем полное имя из first_name и last_name
+                        const fullName = [telegramUser.first_name, telegramUser.last_name]
+                            .filter(Boolean)
+                            .join(' ') || telegramUser.username || 'User';
+
+                        if (fullName && fullName !== existing.name) {
+                            updates.name = fullName;
+                        }
+
+                        if (Object.keys(updates).length > 0) {
+                            console.log('🔄 Обновление данных пользователя:', updates);
+                            const { data: updated, error: updateError } = await supabase
+                                .from('users')
+                                .update(updates)
+                                .eq('id', existing.id)
+                                .select()
+                                .single();
+
+                            if (updateError) {
+                                console.warn('⚠️ Не удалось обновить данные пользователя:', updateError);
+                            } else {
+                                userRecord = updated;
+                                console.log('✅ Данные пользователя обновлены');
+                            }
+                        }
+                    }
+
+                    return userRecord;
+                }
+
+                // Создаем нового пользователя
+                if (!telegramUser) {
+                    console.warn('⚠️ Нет данных Telegram для создания пользователя');
+                    return null;
+                }
+
+                console.log('➕ Создание нового пользователя в БД');
+
+                // Формируем имя из first_name и last_name
+                const fullName = [telegramUser.first_name, telegramUser.last_name]
+                    .filter(Boolean)
+                    .join(' ') || telegramUser.username || 'User';
+
+                const payload = {
+                    telegram_id: telegramId,
+                    username: telegramUser.username || null,
+                    name: fullName,
+                    daily_message_count: 0,
+                    total_message_count: 0
+                };
+
+                console.log('📤 Данные для создания:', payload);
+
+                const { data: inserted, error: insertError } = await supabase
+                    .from('users')
+                    .insert(payload)
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error('❌ Ошибка создания пользователя в БД:', insertError);
+                    throw insertError;
+                }
+
+                console.log('✅ Пользователь создан в БД:', inserted);
+                userRecord = inserted;
+                return userRecord;
+
+            } catch (err) {
+                console.error('❌ Необработанная ошибка ensureUserRecord:', err);
+                throw err;
+            }
+        }
+
+        // Форматирование даты
+        function formatDate(dateString) {
+            if (!dateString) return 'Неизвестно';
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Сегодня';
+            if (diffDays === 1) return 'Вчера';
+            if (diffDays < 7) return `${diffDays} дней назад`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} недель назад`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} месяцев назад`;
+            return `${Math.floor(diffDays / 365)} лет назад`;
+        }
+
+        // Отображение профиля
+        function renderProfile() {
+            const container = document.getElementById('profileContent');
+
+            if (!telegramUser && !userRecord) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <strong>⚠️ Ошибка загрузки</strong>
+                        Не удалось получить данные пользователя.<br>
+                        <small>Убедитесь, что приложение запущено в Telegram</small>
+                    </div>
+                `;
+                return;
+            }
+
+            // Определяем отображаемое имя
+            let displayName = userRecord?.name;
+
+            // Если нет имени в БД, формируем из данных Telegram
+            if (!displayName && telegramUser) {
+                displayName = [telegramUser.first_name, telegramUser.last_name]
+                    .filter(Boolean)
+                    .join(' ') || telegramUser.username || 'Пользователь';
+            }
+
+            displayName = displayName || 'Пользователь';
+            const username = userRecord?.username || telegramUser?.username || '';
+            const firstLetter = displayName.charAt(0).toUpperCase() || '?';
+
+            // Данные статистики
+            const dailyCount = userRecord?.daily_message_count || 0;
+            const totalCount = userRecord?.total_message_count || 0;
+            const createdAt = userRecord?.created_at || null;
+
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="profile-avatar">${firstLetter}</div>
+                    <div class="profile-name">${displayName}</div>
+                    ${username ? `<div class="profile-username">@${username}</div>` : ''}
+                    ${telegramId ? `<div class="profile-id">Telegram ID: ${telegramId}</div>` : ''}
+                </div>
+
+                <div class="stats-section">
+                    <div class="section-title">
+                        📊 Статистика сообщений
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-value">${dailyCount}</div>
+                            <div class="stat-label">Сегодня</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-value">${totalCount}</div>
+                            <div class="stat-label">Всего сообщений</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${createdAt ? `
+                <div class="info-section">
+                    <div class="info-row">
+                        <span class="info-label">⏰ Зарегистрирован</span>
+                        <span class="info-value">${formatDate(createdAt)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">🎯 Среднее в день</span>
+                        <span class="info-value">${totalCount > 0 ? Math.round(totalCount / Math.max(1, Math.ceil((new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24)))) : 0}</span>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            console.log('✅ Профиль отрисован');
+        }
+
+        // Загрузка профиля
+        async function loadProfile() {
+            console.log('🚀 Начало загрузки профиля...');
+            console.log('📱 Platform:', tg.platform);
+            console.log('🎨 Version:', tg.version);
+
+            const hasTelegramUser = getTelegramUser();
+
+            if (!hasTelegramUser) {
+                console.warn('⚠️ Telegram пользователь не найден');
+                console.log('🔍 Детали отладки:');
+                console.log('- tg.initData:', tg.initData);
+                console.log('- tg.initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
+
+                document.getElementById('profileContent').innerHTML = `
+                    <div class="error-message">
+                        <strong>⚠️ Ошибка</strong>
+                        Не удалось получить данные из Telegram.<br>
+                        <small>Откройте приложение из Telegram</small><br><br>
+                        <small style="opacity: 0.5;">
+                            Debug info:<br>
+                            Platform: ${tg.platform || 'unknown'}<br>
+                            Version: ${tg.version || 'unknown'}<br>
+                            InitData: ${tg.initData ? 'present' : 'empty'}
+                        </small>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                await ensureUserRecord();
+                renderProfile();
+            } catch (error) {
+                console.error('❌ Ошибка загрузки профиля:', error);
+                document.getElementById('profileContent').innerHTML = `
+                    <div class="error-message">
+                        <strong>⚠️ Ошибка загрузки</strong>
+                        ${error.message}<br>
+                        <small>Проверьте подключение к базе данных</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Подписка на изменения в реальном времени
+        function subscribeToChanges() {
+            if (!telegramId) return;
+
+            supabase
+                .channel('user_changes')
+                .on(
+                    'postgres_changes',
+                    { 
+                        event: 'UPDATE',
+                        schema: 'public', 
+                        table: 'users',
+                        filter: `telegram_id=eq.${telegramId}`
+                    },
+                    (payload) => {
+                        console.log('🔔 Обновление профиля:', payload);
+                        userRecord = payload.new;
+                        renderProfile();
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Подписка на обновления профиля активна');
+                    }
+                });
+        }
+
+        // Инициализация приложения
+        async function init() {
+            console.log('🚀 Инициализация приложения профиля...');
+            console.log('👤 Telegram User:', tg.initDataUnsafe?.user);
+            console.log('📱 Версия Web App:', tg.version);
+            console.log('🎨 Тема:', tg.colorScheme);
+            console.log('📡 Supabase URL:', CONFIG.SUPABASE_URL);
+
+            await loadProfile();
+
+            // Подключаем реал-тайм обновления
+            console.log('🔔 Подключаю реал-тайм обновления...');
+            subscribeToChanges();
+
+            // Сигнализируем Telegram, что приложение готово
+            tg.ready();
+            console.log('✅ Приложение готово (ready() вызван)');
+        }
+
+        console.log('▶️ Запуск приложения профиля...');
+        init();
+    </script>
+</body>
+</html>
+
